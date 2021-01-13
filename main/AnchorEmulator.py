@@ -87,7 +87,7 @@ while sg6:
     x, y, zone, zone_letter = from_latlon(anchor[0], anchor[1])
     SG6.append([x, y, anchor_depth, zone, zone_letter])
 
-
+"""
 M7 = [53.332648, -3.146757]
 A71 = [53.380672, -3.204791]
 A72 = [53.349420, -3.302614]
@@ -100,9 +100,10 @@ while sg7:
     x, y, zone, zone_letter = from_latlon(anchor[0], anchor[1])
     SG7.append([x, y, anchor_depth, zone, zone_letter])
     # print("x:", x, "y:", y, "zone:", zone, "letter:", zone_letter)
+"""
 
 # Form List of Anchors for Beacon Segments
-beacon_segments = [SG1, SG2]  #, SG3, SG4, SG5, SG6]
+beacon_segments = [SG2, SG4, SG6]  #, SG4, SG5, SG6]
 
 # ==================== Virtual Sensors ============================= #
 # Sensor locations in Lat/Lon and anchor_depth(m)
@@ -114,8 +115,9 @@ S5 = [56.38808, -4.23198]
 S6 = [56.38335, -4.23344]
 S7 = [56.38392, -4.22275]
 S8 = [56.38817, -4.22395]
-
+"""
 S9 = [53.336405, -3.211040]
+"""
 
 sensor_loc = S1  # in Lat/Lon
 sensor_depth = 100.0  # in meters
@@ -139,33 +141,33 @@ nm3 = Nm3(input_stream=uart, output_stream=uart)
 # Broadcast some Global Parameters
 # Sound Speed
 msg_bytes = b'ULMP' + b'S' + struct.pack('f', SOUND_SPEED)
-start_time = time.ticks_us()
+# start_time = time.ticks_us()
 msg_length = nm3.send_broadcast_message(msg_bytes)
-end_time = time.ticks_us()
+# end_time = time.ticks_us()
 if len(msg_bytes) == msg_length:
-    print("Sound Speed broadcasted in ", time.ticks_diff(end_time, start_time), " us.")
+    print("Lead anchor broadcasted:", msg_bytes)
 
 # Wait for few seconds
 time.sleep(1)
 
 # Fluid Density
 msg_bytes = b'ULMP' + b'D' + struct.pack('f', FLUID_DENSITY)
-start_time = time.ticks_us()
+# start_time = time.ticks_us()
 msg_length = nm3.send_broadcast_message(msg_bytes)
-end_time = time.ticks_us()
+# end_time = time.ticks_us()
 if len(msg_bytes) == msg_length:
-    print("Fluid density broadcasted in ", time.ticks_diff(end_time, start_time), " us.")
+    print("Lead anchor broadcasted:", msg_bytes)
 
 # Wait for few seconds
 time.sleep(1)
 
 # Broadcast "Start of Beacon Cycle"
 msg_bytes = b'ULMS'
-start_time = time.ticks_us()
+# start_time = time.ticks_us()
 msg_length = nm3.send_broadcast_message(msg_bytes)
-end_time = time.ticks_us()
+# end_time = time.ticks_us()
 if len(msg_bytes) == msg_length:
-    print("Msg Bytes:", msg_bytes)
+    print("Lead anchor broadcasted:", msg_bytes)
 
 # Wait for few seconds
 time.sleep(1)
@@ -193,7 +195,7 @@ for i, segment in enumerate(beacon_segments):
         else:
             travel_time_to_anchors.append(distance(segment[0][0:3], segment[j][0:3]) / SOUND_SPEED)
             travel_time_to_sensor.append(distance(segment[j][0:3], sensor_loc[0:3]) / SOUND_SPEED)
-            wait_times.append(random.random() + 5.0 + travel_time_to_anchors[j-1])
+            wait_times.append(random.random() + 1.0 + travel_time_to_anchors[j-1])
             # Continue of Beacon Segment
             msg_bytes = b'ULAB' + struct.pack('B', n) + b'L' + lat + lon + anchor_depth
         # collect beacon signal
@@ -212,11 +214,11 @@ for i, segment in enumerate(beacon_segments):
             time.sleep_us(int(travel_time_to_sensor[j]*1E6))
             msg_length = nm3.send_broadcast_message(beacon_signals[j])
             # end_time = time.ticks_us()
-            print("Lead Broadcast at: \t \t \t", t0)
-            print("Msg bytes: ", beacon_signals[j])
+            # print("Lead broadcasted at: \t \t \t", t0)
+            # print("Msg bytes: ", beacon_signals[j])
             # print("Lead beacon signal took ", time.ticks_diff(end_time, start_time), " us.")
         else:
-            toa = t0 + travel_time_to_anchors[j-1]
+            toa = t0 + travel_time_to_anchors[j-1] - 0.007  #25  # offset added after tuning
             time.sleep_us(int(wait_times[j-1]*1E6))
             time.read_ticks()  # Get Timestamp from SysTick
             t = time.ticks_seconds() + time.ticks_millis() / 1E3 + time.ticks_micros() / 1E6
@@ -226,9 +228,9 @@ for i, segment in enumerate(beacon_segments):
             time.sleep_us(int(travel_time_to_sensor[j]*1E6))
             msg_length = nm3.send_broadcast_message(msg_bytes)
             # end_time = time.ticks_us()
-            print(j, "th anchor received Lead's Beacon at: \t", toa)
-            print(j, "th anchor broadcasted at \t \t", t, "with deltaT =", deltaT)
-            print("Msg bytes: ", msg_bytes)
+            # print(j, "th anchor received Lead's Beacon at: \t", toa)
+            # print(j, "th anchor broadcasted at \t \t", t, "with deltaT =", deltaT)
+            # print("Msg bytes: ", msg_bytes)
             # print("Asst. beacon signal took ", time.ticks_diff(end_time, start_time), " us")
 
 # Wait for few seconds
